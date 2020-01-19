@@ -1,24 +1,28 @@
 #lang sicp
 ; Miller-Rabin Primality Test
 ;(#%require "smallest-divisor.rkt" "../util/util.rkt")
-(#%require (lib "27.ss" "srfi")) ;; To use random-integer 
+(#%require (lib "27.ss" "srfi")) ;; To use random-integer
 
+(define (report-prime N)
+  (display N)
+  (display " IS A PRIME!")
+  (newline))
 
 (define (square x) (* x x))
 
-(define (check-trival x square N)
-  (if (and (= square 1)
-           (not (= x 1))
-           (not (= x (- N 1))))
-      0
-      square))
-
-(define (non-trival? x N)
-  (check-trival x (remainder (square x) N) N))
-
 (define (expmod base exp N)
+  (define (non-trival? x)
+    (define (check-trival x square)
+      (if (and (= square 1)
+               (not (= x 1))
+               (not (= x (- N 1))))
+          0
+          square))
+    
+    (check-trival x (remainder (square x) N)))
+  
   (cond ((= exp 0) 1)
-        ((even? exp) (non-trival? (remainder (square (expmod base (/ exp 2) N)) N) N))
+        ((even? exp) (non-trival? (expmod base (/ exp 2) N)))
         (else (remainder (* base (expmod base (- exp 1) N)) N))))
 
 
@@ -44,11 +48,5 @@
                       (search-for-primes (+ 2 N) end times)))
         (else (search-for-primes (+ 2 N) end times))))
 
-(define (report-prime N)
-  (display N)
-  (display " IS A PRIME!")
-  (newline))
 
-
-; 177 161 141 133 129 has error
 (search-for-primes 100 200 100)
