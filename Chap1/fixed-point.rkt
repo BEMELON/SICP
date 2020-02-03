@@ -1,4 +1,5 @@
 #lang sicp
+(#%provide fixed-point)
 (define tolerance 0.0001)
 
 (define (fixed-point f first-guess)
