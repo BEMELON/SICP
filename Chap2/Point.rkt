@@ -1,5 +1,6 @@
 #lang sicp
-
+(#%provide print-point make-point x-point y-point
+           make-segment start-segment end-segment midpoint-segment)
 ; print-point
 (define (print-point p)
   (display "(")
