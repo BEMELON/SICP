@@ -10,9 +10,9 @@
 
 
 
-; (cons x y) 1, 2 인 Pair 생성
-; (car x) x의 첫번째 값
-; (cdr x) x의 두번째 
+; (cons x y) 1, 2 인 Pair 생성 (Construct)
+; (car x) x의 첫번째 값 (Content of Address part of Register)
+; (cdr x) x의 두번째 (Content of Decrement part of Register)
 (define (GCD x y)
   (cond ((= y 0) (abs x))
         ((= x 0) (abs y))
