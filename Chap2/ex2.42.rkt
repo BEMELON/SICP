@@ -14,7 +14,7 @@
             (accumulate op init (cdr seq)))))
 
 (define (flatmap proc seq)
-    ;(display "[DBG] <flatmap> seq |=> ") (display seq) (newline)
+    (display "[DBG] <flatmap> seq |=> ") (display seq) (newline)
     (accumulate append nil (map proc seq)))
     
 (define (map proc seq)
@@ -82,6 +82,7 @@
 			(list empty-board)
             (filter
                 (lambda (positions) (safe? k positions))
+                ; rest-of-queens 에 new-row 를 append
                 (flatmap
                     (lambda (rest-of-queens)
                         (map 
@@ -90,8 +91,23 @@
                     (queen-cols (- k 1))))))
     (queen-cols board-size))
  
+(define (queens-Louis board-size)
+	(define (queen-cols k)
+		(if (= k 0)
+		    (list empty-board)
+		    (filter
+	    		(lambda (positions) (safe? k positions))
+	    		; new-row 에 rest-of-queens 를 append
+	    		(flatmap
+	    			(lambda (new-row)
+	    				(map 
+	    				     (lambda (rest-of-queens) (adjoin-position new-row k rest-of-queens))
+	    				     (queen-cols (- k 1))))
+				    (enumerate-interval 1 board-size)))))
+	(queen-cols board-size))
+ 
 ;(safe? 3 (list 4 1 3))
-(define result (queens 8))
+(define result (queens 4))
 (display result) (newline)
 (display (length result))
 
