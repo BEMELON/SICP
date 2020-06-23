@@ -1,13 +1,13 @@
 #lang sicp
 (#%provide element-of-set adjoin-set intersection-set)
 
-(define (element-of-set s object)
+(define (element-of-set object s)
     (cond ((null? s) #f)
           ((eq? (car s) object) #t)
-          (else (element-of-set (cdr s) object))))
+          (else (element-of-set object (cdr s)))))
       
-(define (adjoin-set s object)
-    (if (element-of-set s object)
+(define (adjoin-set object s)
+    (if (element-of-set object s)
         s
         (cons s object)))
     
