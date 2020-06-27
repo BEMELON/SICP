@@ -1,0 +1,65 @@
+#lang sicp
+
+(define (left-branch tree) (cadr tree))
+(define (right-branch tree) (caddr tree))
+(define (entry tree) (car tree))
+
+(define (tree->list-2 tree)
+    (define (copy-to-list tree result-list)
+        (if (null? tree)
+            result-list
+            (copy-to-list (left-branch tree) 
+                          (cons (entry tree)
+                                (copy-to-list (right-branch tree) 
+                                              result-list)))))
+    (copy-to-list tree '()))
+
+
+(define (make-tree entry left-tree right-tree)
+    (list entry left-tree right-tree))
+
+(define (list->tree elements)
+    (define (partial-tree elts n)
+        (if (= n 0)
+            (cons '() elts)
+            (let ((left-size (quotient (- n 1) 2)))
+                    (let ((left-result (partial-tree elts left-size)))
+                            (let ((left-tree (car left-result))
+                                  (non-left-elts (cdr left-result))
+                                  (right-size (- n (+ left-size 1))))
+                                (let ((this-entry (car non-left-elts))
+                                      (right-result (partial-tree (cdr non-left-elts) right-size)))
+                                      (let ((right-tree (car right-result))
+                                            (remaining-elts (cdr right-result))) 
+                                                  (cons (make-tree this-entry left-tree right-tree)
+                                                         remaining-elts))))))))
+    (car (partial-tree elements (length elements))))
+
+(define (union-set s1 s2)
+    (define (make-union s1 s2)
+        (cond ((null? s1) nil)
+              ((null? s2) nil)
+              ((> (car s1) (car s2)) (cons (car s2) (make-union s1 (cdr s2))))
+              ((> (car s2) (car s1)) (cons (car s1) (make-union (cdr s1) s2)))
+              (else (cons (car s1) (make-union (cdr s1) (cdr s2))))))
+    (let ((list1 (tree->list-2 s1))
+          (list2 (tree->list-2 s2)))
+      (list->tree (make-union list1 list2))))
+
+
+(define (intersection-set s1 s2)
+    (define (make-intersection s1 s2 result)
+        (cond ((or (null? s2) (null? s1)) result)
+              ((> (car s1) (car s2)) (make-intersection s1 (cdr s2) result))
+              ((> (car s2) (car s1)) (make-intersection (cdr s1) s2 result))
+              (else (make-intersection (cdr s1) (cdr s2) (cons (car s1) result)))))
+    (let ((set->list1 (tree->list-2 s1))
+          (set->list2 (tree->list-2 s2)))
+      (list->tree (make-intersection set->list1 set->list2 '()))))
+  
+ 
+(define s1 (list->tree (list 1 3 5 7 9 11)))
+(define s2 (list->tree (list 2 4 6 8 10 12)))
+(define s3 (list->tree (list 1 2 3 4 5 6 7)))
+(union-set s1 s2)
+(intersection-set s1 s3)
