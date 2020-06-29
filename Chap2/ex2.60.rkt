@@ -17,8 +17,8 @@
 (define (union-set s1 s2)
     (append s1 s2))
 
-; Non-duplicate : O((len s1))
-; dpulicate : O((len s1))
+; Non-duplicate : O((len s1)^2)
+; dpulicate : O((len s1)^2)
 (define (intersection-set s1 s2)
     (cond ((or (null? s1) (null? s2)) '())
           ((element-of-set (car s1) s2) (cons (car s1) (intersection-set (cdr s1) s2)))
