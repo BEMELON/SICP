@@ -6,6 +6,7 @@
               ((eq? op 'angle) a)
               ((eq? op 'real-part) (* z (cos a)))
               ((eq? op 'imag-part) (* z (sin a)))
-              (else (error "Unknown op: MAKE-FROM-REAL-IMAG" op)))))
+              (else (error "Unknown op: MAKE-FROM-REAL-IMAG" op))))
+    dispatch)
           
     
