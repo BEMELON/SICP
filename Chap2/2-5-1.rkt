@@ -1,10 +1,10 @@
 #lang sicp
 (#%require "../util/util.rkt")
 
-;(define (add x y) (apply-generic 'add x y))
-;(define (sub x y) (apply-generic 'sub x y))
-;(define (mul x y) (apply-generic 'mul x y))
-;(define (div x y) (apply-generic 'div x y))
+(define (add x y) (apply-generic 'add x y))
+(define (sub x y) (apply-generic 'sub x y))
+(define (mul x y) (apply-generic 'mul x y))
+(define (div x y) (apply-generic 'div x y))
 
 (define (attach-tag tag object) (cons tag object))
 
