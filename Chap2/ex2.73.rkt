@@ -1,18 +1,5 @@
 #lang sicp 
-
-(#%require (only racket 
-                 make-hash
-                 hash-set!
-                 hash-ref!))
-
-(define *op-table* (make-hash))
-
-(define (put op type proc)
-  (hash-set! *op-table* (list op type) proc))
-
-(define (get op type)
-  (hash-ref! *op-table* (list op type) '()))
-
+(#%require "../util/util.rkt")
 
 (define (deriv exp var)
     (define (variable? exp) (symbol? exp))
