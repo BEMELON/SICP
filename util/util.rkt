@@ -22,11 +22,19 @@
   (hash-ref! *op-table* (list op type) '()))
 
 ; Functions for Generic-apply
-(define (type-tag object) (car object))
-(define (contents object) (cdr object)) 
+(define (type-tag datum)
+    (if (pair? datum)
+        (car datum)
+        (error "Bad tagged datum: TYPE-TAG" datum)))
+
+(define (contents datum)
+    (if (pair? datum)
+        (cdr datum)
+        (error "Bad tagged datum: CONTENTS" datum)))
+    
 (define (apply-generic op . args)
-  (let ((type-tags (map type-tag args)))
- (let ((proc (get op type-tags)))
-   (if proc
-         (apply proc (map contents args))
-         (error "No method for There Types: APPLY-GENERIC" (list op type-tags))))))
+    (let ((type-tags (map type-tag args)))
+    (let ((proc (get op type-tags)))
+    (if proc
+            (apply proc (map contents args))
+            (error "No method for There Types: APPLY-GENERIC" (list op type-tags))))))
