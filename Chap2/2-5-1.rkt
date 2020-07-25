@@ -53,6 +53,26 @@
 (define (make-rational n d)
   ((get 'make 'rational) n d))
 
+(define (install-polar-package)
+  ;; internal procedures
+  (define (square z) (* z z))
+  (define (magnitude z) (car z))
+  (define (angle z) (cdr z))
+  (define (make-from-mag-ang r a) (cons r a))
+  (define (real-part z) (* (magnitude z) (cos (angle z))))
+  (define (imag-part z) (* (magnitude z) (sin (angle z))))
+  (define (make-from-real-imag x y) (cons (sqrt (+ (square x) (square y)))
+                                                (atan y x)))
+  ;; interface to the rest of the system
+  (define (tag x) (attach-tag 'polar x))
+  (put 'real-part '(polar) real-part)
+  (put 'imag-part '(polar) imag-part)
+  (put 'magnitude '(polar) magnitude)
+  (put 'angle '(polar) angle)
+  (put 'make-from-real-imag 'polar (lambda (x y) (tag (make-from-real-imag x y))))
+  (put 'make-from-mag-ang 'polar (lambda (r a) (tag (make-from-mag-ang r a))))
+  '([LOG][DONE]install-polar-package))
+
 (define (install-complex-package)
   (define (make-from-real-imag x y) ((get 'make-from-real-imag 'rectangular) x y))
   (define (make-from-mag-ang r a) ((get 'make-from-mag-ang 'polar) r a))
@@ -70,6 +90,15 @@
 						    (- (angle z1) (angle z2))))
   (define (tag z) (attach-tag 'complex z))
 
+  ; =====================================================
+  ; Exercise 2.77
+  (define (magnitude z) (apply-generic 'magnitude z))
+  
+  (put 'real-part '(complex) real-part)
+  (put 'imag-part '(complex) imag-part)
+  (put 'magnitude '(complex) magnitude)
+  (put 'angle '(complex) angle)
+  ; =====================================================
   (put 'add '(complex complex) (lambda (z1 z2) (tag (add-complex z1 z2))))
   (put 'sub '(complex complex) (lambda (z1 z2) (tag (sub-complex z1 z2))))
   (put 'mul '(complex complex) (lambda (z1 z2) (tag (mul-complex z1 z2))))
@@ -81,3 +110,30 @@
 (install-complex-package)
 (install-scheme-number-package)
 (install-rational-package)
+(install-polar-package)
+
+
+; =====================================================================================
+; Exercise 2.77
+(put 'make-from-real-imag 'rectangular (lambda (x y) (cons 'rectangular (cons x y))))
+(put 'make-from-mag-ang 'polar (lambda (x y) (cons 'polar (cons x y))))
+
+; (define (apply-generic op . args)
+;   (display "[DBG][START] apply-generic\n")
+;   (display "    <apply-generic> op : ") (display op) (newline)
+;   (display "    <apply-generic> args : ") (display args) (newline)
+;   (let ((type-tags (map type-tag args)))
+;       (display "    type-tags : ")
+;       (display type-tags) (newline)
+;     (let ((proc (get op type-tags)))
+;       (display "    proc : ")
+;       (display proc) (newline)
+;       (if (not (null? proc))
+;         (apply proc (map contents args))
+;         (error "No method for these types: APPLY-GENERIC" (list op type-tags))))))
+
+
+(define z ((get 'make-from-mag-ang 'complex) 4 5))
+(apply-generic 'magnitude z)
+
+; =====================================================================================
