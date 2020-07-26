@@ -49,6 +49,9 @@
   
   (define (tag x) (attach-tag 'rational x))
   
+  (define (=zero? x) (= (numer x) 0))
+  
+  (put '=zero? '(rational) =zero?)
   (put 'equ? '(rational rational) equ?)
   (put 'add '(rational rational) (lambda (x y) (tag (add-rat x y))))
   (put 'sub '(rational rational) (lambda (x y) (tag (sub-rat x y))))
@@ -68,13 +71,18 @@
   (define (make-from-mag-ang r a) (cons r a))
   (define (real-part z) (* (magnitude z) (cos (angle z))))
   (define (imag-part z) (* (magnitude z) (sin (angle z))))
+  
   (define (make-from-real-imag x y) (cons (sqrt (+ (square x) (square y)))
                                                 (atan y x)))
+                                              
   (define (equ? x y) (and (= (magnitude x) (magnitude y))
                           (= (angle x) (angle y))))
+  
+  (define (=zero? x) (= (magnitude x) 0))
                         
   ;; interface to the rest of the system
   (define (tag x) (attach-tag 'polar x))
+  (put '=zero? '(polar) =zero?)
   (put 'equ? '(polar polar) equ?)
   (put 'real-part '(polar) real-part)
   (put 'imag-part '(polar) imag-part)
@@ -94,14 +102,21 @@
   (define (make-from-real-imag x y) (cons x y))
   (define (magnitude z) (sqrt (+ (square (real-part z))
                                  (square (imag-part z)))))
+                               
   (define (angle z) (atan (imag-part z) (real-part z)))
+  
   (define (make-from-mag-ang r a) (cons (* r (cos a)) (* r (sin a))))
+  
   (define (equ? x y) (and (= (real-part x) (real-part y))
                           (= (imag-part x) (imag-part y))))
-
+  
+  (define (=zero? x) (and (= (real-part x) 0)
+                          (= (imag-part x) 0)))
+                        
   ;; interface to the rest of the system
   (define (tag x) (attach-tag 'rectangular x))
   
+  (put '=zero? '(rectangular) =zero?)
   (put 'equ? '(rectangular rectangular) equ?)
   (put 'real-part '(rectangular) real-part)
   (put 'imag-part '(rectangular) imag-part)
@@ -143,11 +158,17 @@
   (define (equ? x y) (apply-generic 'equ? x y))
   ; =====================================================
   
+   ; =====================================================
+  ; Exercise 2.80
+  (define (=zero? x) (apply-generic '=zero? x))
+  ; =====================================================
+  
   ; interfaces
   (put 'real-part '(complex) real-part)
   (put 'imag-part '(complex) imag-part)
   (put 'magnitude '(complex) magnitude)
   (put 'angle '(complex) angle)
+  (put '=zero? '(complex) =zero?)
   (put 'equ? '(complex complex) equ?)
   (put 'add '(complex complex) (lambda (z1 z2) (tag (add-complex z1 z2))))
   (put 'sub '(complex complex) (lambda (z1 z2) (tag (sub-complex z1 z2))))
@@ -162,10 +183,7 @@
 ;                     Generic-arithmetic - PACKAGES
 ; =================================================================
 (define (install-generic-arithmetic-package)
-  (define (equ? x y) (apply-generic 'equ? x y))
-  
-  (put 'equ? '(complex complex) equ?)
-  (put 'equ? '(rational rational) equ?)
+  (put '=zero? '(scheme-number) (lambda (x) (= x 0)))
   (put 'equ? '(scheme-number scheme-number) (lambda (x y) (= x y)))
   '([LOG][DONE]install-generic-arithmetic-package))
 
@@ -178,12 +196,14 @@
 (install-rational-package)
 (install-polar-package)
 (install-rectangular-package)
+(install-generic-arithmetic-package)
 
 (define (add x y) (apply-generic 'add x y))
 (define (sub x y) (apply-generic 'sub x y))
 (define (mul x y) (apply-generic 'mul x y))
 (define (div x y) (apply-generic 'div x y))
 (define (equ? x y) (apply-generic 'equ? x y))
+(define (=zero? x) (apply-generic '=zero? x))
 
 (define (make-scheme-number n)
   ((get 'make 'scheme-number) n))
@@ -217,23 +237,27 @@
 ;         (error "No method for these types: APPLY-GENERIC" (list op type-tags))))))
 
 
-(define real_x (make-from-real-imag 4 5))
+(define real_x (make-from-real-imag 0 0))
 (define real_y (make-from-real-imag 10 5))
 ;(equ? real_x real_y)
+;(=zero? real_x)
 
-(define mag_x (make-from-mag-ang 10 5))
+(define mag_x (make-from-mag-ang 0 0))
 (define mag_y (make-from-mag-ang 10 6))
 ;(equ? mag_x mag_y)
+;(=zero? mag_x)
 
-(define num_x (make-scheme-number 10))
+(define num_x (make-scheme-number 0))
 (define num_y (make-scheme-number 15))
 ;(equ? num_x num_y)
+;(=zero? num_x)
 
-(define x 10)
+(define x 0)
 (define y 10)
 ;(equ? x y)
+;(=zero? x)
 
-(define rational_x (make-rational 10 15))
+(define rational_x (make-rational 0 15))
 (define rational_y (make-rational 20 25))
-;(equ? rational_x rational_y)
-  
+; (equ? rational_x rational_y)
+; (=zero? rational_x)
