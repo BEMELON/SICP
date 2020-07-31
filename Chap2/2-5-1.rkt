@@ -247,12 +247,12 @@
 ;(equ? mag_x mag_y)
 ;(=zero? mag_x)
 
-(define num_x (make-scheme-number 0))
+(define num_x (make-scheme-number 10))
 (define num_y (make-scheme-number 15))
 ;(equ? num_x num_y)
 ;(=zero? num_x)
 
-(define x 0)
+(define x 10)
 (define y 10)
 ;(equ? x y)
 ;(=zero? x)
@@ -261,3 +261,8 @@
 (define rational_y (make-rational 20 25))
 ; (equ? rational_x rational_y)
 ; (=zero? rational_x)
+
+(define (number->complex x) (make-from-real-imag x 0))
+(put-coercion 'scheme-number 'complex number->complex)
+(add real_y num_x)
+(add num_x num_y)

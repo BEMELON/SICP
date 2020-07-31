@@ -6,13 +6,20 @@
                  hash-ref!))
 
 
-(#%provide runtime put get type-tag contents apply-generic attach-tag square)
+(#%provide runtime square
+           put get 
+           put-coercion get-coercion
+           type-tag contents attach-tag
+           apply-generic)
 
 ; Provide Runtime 
 (define (runtime) (current-inexact-milliseconds))
 (define (square x) (* x x))
 
-; PUT GET for Hash Table
+
+; ===========================================================================
+; Hash Table operations 
+; ===========================================================================
 (define *op-table* (make-hash))
 
 (define (put op type proc)
@@ -21,6 +28,18 @@
 (define (get op type)
   (hash-ref! *op-table* (list op type) '()))
 
+(define *coercion-table* (make-hash))
+
+(define (put-coercion to be proc)
+    (hash-set! *coercion-table* (list to be) proc))
+
+(define (get-coercion to be)
+    (hash-ref! *coercion-table* (list to be) '()))
+
+(define (delay t)
+    (if (< t 0)
+        nil
+        (delay (- t 1))))
 
 ; ===========================================================================
 ; Exercise 2.78 : Update functions for Ordinary numbers
@@ -39,9 +58,85 @@
     (cond ((eq? type-tag 'scheme-number) datum)
           (else (cons type-tag datum))))
     
+; ===========================================================================
+; Coercionable apply-generic 
+; ===========================================================================
+; (define (apply-generic op . args)
+;     (display "[DBG][START] apply-generic\n")
+;     (display "    <apply-generic> op : ") (display op) (newline)
+;     (display "    <apply-generic> args : ") (display args) (newline)
+;     (let ((type-tags (map type-tag args)))
+;         (let ((proc (get op type-tags)))
+;         (display "    <apply-generic> type-tags : ") (display type-tags) (newline)
+;         (display "    <apply-generic> proc : ") (display proc) (newline)
+;         (if (not (null? proc))    
+;             (apply proc (map contents args))
+;             (if (= (length args) 2)
+;                 (let ((type1 (car type-tags))
+;                       (type2 (cadr type-tags))
+;                       (a1 (car args))
+;                       (a2 (cadr args)))
+;                   (display "    <apply-generic> type1 : ") (display type1) (newline)
+;                   (display "    <apply-generic> type2 : ") (display type2) (newline)
+;                   (let ((t1->t2 (get-coercion type1 type2))
+;                         (t2->t1 (get-coercion type2 type1)))
+;                     (cond ((not (null? t1->t2)) (apply-generic op (t1->t2 a1) a2))
+;                           ((not (null? t2->t1)) (apply-generic op a1 (t2->t1 a2)))
+;                           (else (error "No method for There Types: APPLY-GENERIC" (list op type-tags))))))
+;                 (error "No method for these types" (list op type-tags)))))))
+
+            
 (define (apply-generic op . args)
+    ; =======================================================================
+    ; internal fucntions
+    ; =======================================================================
+    (define (not-null? x) (not (null? x)))
+    
+    ; match? target , type-tag
+    (define (find-type target type-tags args)
+        (if (null? type-tags)
+            target
+            (let ((type1 (car type-tags))
+                  (arg1 (car args)))
+              (let ((target-coercion (get-coercion type1 target)))
+                   (if (not-null? target-coercion)
+                       (find-type target (cdr type-tags) (cdr args))
+                       nil)))))
+    
+    ; Target looper
+    (define (find-target type-tags args)
+        (display "             <find-target> type-tags : ") (display type-tags) (newline)
+        (display "             <find-target> args : ") (display args) (newline)
+        (if (null? type-tags) 
+            nil
+            (let ((target (find-type (car type-tags) (cdr type-tags) (cdr args))))
+                 (if (null? target) 
+                     (find-target (cdr type-tags) (cdr args))
+                     target))))
+
+    (define (convert target args)
+        (define (toTarget arg)
+            (let ((type-tag (type-tag arg)))
+                (let ((proc (get-coercion type-tag target)))
+                    (if (not-null? proc)
+                        (proc arg)
+                        arg))))
+        (map toTarget args))
+
+    ; =======================================================================
+    ; procedures
+    ; =======================================================================
+    (display "[DBG][START] apply-generic\n")
+    (display "    <apply-generic> op : ") (display op) (newline)
+    (display "    <apply-generic> args : ") (display args) (newline)
     (let ((type-tags (map type-tag args)))
-    (let ((proc (get op type-tags)))
-    (if proc
-            (apply proc (map contents args))
-            (error "No method for There Types: APPLY-GENERIC" (list op type-tags))))))
+        (let ((proc (get op type-tags)))
+            (display "    <apply-generic> type-tags : ") (display type-tags) (newline)
+            (display "    <apply-generic> proc : ") (display proc) (newline)
+            (if (not-null? proc)    
+                (apply proc (map contents args))
+                (let ((target (find-target type-tags args)))
+                     (display "    <apply-generic> target : ") (display target) (newline)
+                    (if (not-null? target)
+                        (apply apply-generic (append (list op) (convert target args)))
+                        (error "No method for These Types: APPLY-GENERIC" (list op type-tags))))))))
