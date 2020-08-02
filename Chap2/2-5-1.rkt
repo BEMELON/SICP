@@ -198,10 +198,17 @@
 (install-rectangular-package)
 (install-generic-arithmetic-package)
 
-(define (add x y) (apply-generic 'add x y))
-(define (sub x y) (apply-generic 'sub x y))
-(define (mul x y) (apply-generic 'mul x y))
-(define (div x y) (apply-generic 'div x y))
+(define (apply-repeat proc op args)
+    ;(display "<apply-repeat> args : ") (display args) (newline)
+    (cond ((= (length args) 1) (car args))
+          ((null? (cadr args)) (apply proc (append (list op) (list (car args) (cadr args)))))
+          (else (apply-repeat proc op (append (list (apply proc (append (list op) (list (car args) (cadr args)))))
+                                      (cddr args))))))
+
+(define (add . args) (apply-repeat apply-generic 'add args))
+(define (sub . args) (apply-repeat apply-generic 'sub args))
+(define (mul . args) (apply-repeat apply-generic 'mul args))
+(define (div . args) (apply-repeat apply-generic 'div args))
 (define (equ? x y) (apply-generic 'equ? x y))
 (define (=zero? x) (apply-generic '=zero? x))
 
@@ -264,5 +271,5 @@
 
 (define (number->complex x) (make-from-real-imag x 0))
 (put-coercion 'scheme-number 'complex number->complex)
-(add real_y num_x)
-(add num_x num_y)
+;(add real_y num_x)
+(add num_x num_x real_y num_x)
