@@ -6,7 +6,7 @@
                  hash-ref!))
 
 
-(#%provide runtime square
+(#%provide runtime square not-null?
            put get 
            put-coercion get-coercion
            type-tag contents attach-tag
@@ -15,7 +15,7 @@
 ; Provide Runtime 
 (define (runtime) (current-inexact-milliseconds))
 (define (square x) (* x x))
-
+(define (not-null? object) (not (null? object)))
 
 ; ===========================================================================
 ; Hash Table operations 
@@ -36,11 +36,6 @@
 (define (get-coercion to be)
     (hash-ref! *coercion-table* (list to be) '()))
 
-(define (delay t)
-    (if (< t 0)
-        nil
-        (delay (- t 1))))
-
 ; ===========================================================================
 ; Exercise 2.78 : Update functions for Ordinary numbers
 ; ===========================================================================
@@ -58,34 +53,27 @@
     (cond ((eq? type-tag 'scheme-number) datum)
           (else (cons type-tag datum))))
     
+    
 ; ===========================================================================
-; Coercionable apply-generic 
+; Exercise 2.83
 ; ===========================================================================
-; (define (apply-generic op . args)
-;     (display "[DBG][START] apply-generic\n")
-;     (display "    <apply-generic> op : ") (display op) (newline)
-;     (display "    <apply-generic> args : ") (display args) (newline)
-;     (let ((type-tags (map type-tag args)))
-;         (let ((proc (get op type-tags)))
-;         (display "    <apply-generic> type-tags : ") (display type-tags) (newline)
-;         (display "    <apply-generic> proc : ") (display proc) (newline)
-;         (if (not (null? proc))    
-;             (apply proc (map contents args))
-;             (if (= (length args) 2)
-;                 (let ((type1 (car type-tags))
-;                       (type2 (cadr type-tags))
-;                       (a1 (car args))
-;                       (a2 (cadr args)))
-;                   (display "    <apply-generic> type1 : ") (display type1) (newline)
-;                   (display "    <apply-generic> type2 : ") (display type2) (newline)
-;                   (let ((t1->t2 (get-coercion type1 type2))
-;                         (t2->t1 (get-coercion type2 type1)))
-;                     (cond ((not (null? t1->t2)) (apply-generic op (t1->t2 a1) a2))
-;                           ((not (null? t2->t1)) (apply-generic op a1 (t2->t1 a2)))
-;                           (else (error "No method for There Types: APPLY-GENERIC" (list op type-tags))))))
-;                 (error "No method for these types" (list op type-tags)))))))
-
-            
+(define (raise datum)
+    (define (get-upper-type type)
+        (cond ((eq? type 'scheme-number) 'rational)
+              ((eq? type 'rational) 'real)
+              ((eq? type 'real) 'complex)
+              (else '())))
+    (let ((type (type-tag datum))
+          (content (contents datum)))
+      (let ((upper_type (get-upper-type type)))
+           (let ((proc (get-coercion type upper_type)))
+                (if (not-null? proc)
+                    (proc datum upper_type)
+                    (error "<raise> no matching coercion proc for these types : " (list datum upper_type)))))))
+                
+; ===========================================================================
+; apply-generic : Multi operands compose of different types
+; ===========================================================================        
 (define (apply-generic op . args)
     ; =======================================================================
     ; internal fucntions

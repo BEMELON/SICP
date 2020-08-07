@@ -224,25 +224,16 @@
 (define (make-from-mag-ang x y)
   ((get 'make-from-mag-ang 'complex) x y))
 
+(define (number->complex x) (make-from-real-imag x 0))
+(define (number->rational x) (make-rational x 1))
+(define (number->real x) (make-from-real-imag x 0))
+(put-coercion 'scheme-number 'complex number->complex)
+(put-coercion 'scheme-number 'rational number->rational)
+(put-coercion 'scheme-number 'real number->real)
+
 ; =====================================================================================
 ; Exercise 2.77
 ; =====================================================================================
-
-; [DEBUG] <apply-generic>
-; (define (apply-generic op . args)
-;   (display "[DBG][START] apply-generic\n")
-;   (display "    <apply-generic> op : ") (display op) (newline)
-;   (display "    <apply-generic> args : ") (display args) (newline)
-;   (let ((type-tags (map type-tag args)))
-;       (display "    <apply-generic> type-tags : ")
-;       (display type-tags) (newline)
-;     (let ((proc (get op type-tags)))
-;       (display "    <apply-generic> proc : ")
-;       (display proc) (newline)
-;       (if (not (null? proc))
-;         (apply proc (map contents args))
-;         (error "No method for these types: APPLY-GENERIC" (list op type-tags))))))
-
 
 (define real_x (make-from-real-imag 0 0))
 (define real_y (make-from-real-imag 10 5))
@@ -269,7 +260,9 @@
 ; (equ? rational_x rational_y)
 ; (=zero? rational_x)
 
-(define (number->complex x) (make-from-real-imag x 0))
-(put-coercion 'scheme-number 'complex number->complex)
+
+
+
+
 ;(add real_y num_x)
-(add num_x num_x real_y num_x)
+;(add num_x num_x real_y num_x)
