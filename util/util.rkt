@@ -59,17 +59,30 @@
 ; ===========================================================================
 (define (raise datum)
     (define (get-upper-type type)
-        (cond ((eq? type 'scheme-number) 'rational)
-              ((eq? type 'rational) 'real)
-              ((eq? type 'real) 'complex)
-              (else '())))
+        (let ((level (get-tower-level-by-type type)))
+             (get-tower-type-by-level (+ 1 level))))
+                     
     (let ((type (type-tag datum))
           (content (contents datum)))
       (let ((upper_type (get-upper-type type)))
            (let ((proc (get-coercion type upper_type)))
                 (if (not-null? proc)
-                    (proc datum upper_type)
+                    (proc datum)
                     (error "<raise> no matching coercion proc for these types : " (list datum upper_type)))))))
+                
+(define (get-tower-level-by-type type)
+    (cond ((eq? type 'scheme-number) 1)
+          ((eq? type 'rational) 2)
+          ((eq? type 'real) 3)
+          ((eq? type 'complex) 4)
+          (else (error "<get-tower-level-by-type> no matching type in type-tower : " (list type)))))
+      
+(define (get-tower-type-by-level level)
+    (cond ((eq? level 1) 'scheme-number)
+          ((eq? level 2) 'rational)
+          ((eq? level 3) 'real)
+          ((eq? level 4) 'complex)
+          (else (error "<get-tower-type-by-level> no matching level in type-tower : " (list level)))))
                 
 ; ===========================================================================
 ; apply-generic : Multi operands compose of different types
@@ -101,15 +114,45 @@
                  (if (null? target) 
                      (find-target (cdr type-tags) (cdr args))
                      target))))
+                 
+    ; =======================================================================
+    ; Exercise 2.84
+    ; =======================================================================
+    (define (find-highest-type type-tags)
+        (define (search type-tags result)
+            (if (null? type-tags)
+                result
+                (let ((level (get-tower-level-by-type (car type-tags))))
+                     (if (< result level)
+                         (search (cdr type-tags) level)
+                         (search (cdr type-tags) result)))))
+        (get-tower-type-by-level (search type-tags 0)))
+                                               
 
     (define (convert target args)
-        (define (toTarget arg)
-            (let ((type-tag (type-tag arg)))
-                (let ((proc (get-coercion type-tag target)))
-                    (if (not-null? proc)
-                        (proc arg)
-                        arg))))
-        (map toTarget args))
+        (define (raise-until-target target arg)
+            (if (eq? target (type-tag arg))
+                arg
+                (raise-until-target target (raise arg))))
+            
+        (define (raise-args args)
+            (if (null? args)
+                nil
+                (cons (raise-until-target target (car args))
+                      (raise-args (cdr args)))))
+        (raise-args args))
+
+    ; =======================================================================
+    ; coercion - convert
+    ; =======================================================================
+    ; (define (convert target args)
+    ;     (define (toTarget arg)
+    ;         (let ((type-tag (type-tag arg)))
+    ;             (let ((proc (get-coercion type-tag target)))
+    ;                 (if (not-null? proc)
+    ;                     (proc arg)
+    ;                     arg))))
+    ;     (map toTarget args))
 
     ; =======================================================================
     ; procedures
@@ -123,7 +166,7 @@
             (display "    <apply-generic> proc : ") (display proc) (newline)
             (if (not-null? proc)    
                 (apply proc (map contents args))
-                (let ((target (find-target type-tags args)))
+                (let ((target (find-highest-type type-tags)))
                      (display "    <apply-generic> target : ") (display target) (newline)
                     (if (not-null? target)
                         (apply apply-generic (append (list op) (convert target args)))

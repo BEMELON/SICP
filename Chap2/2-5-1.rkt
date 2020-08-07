@@ -264,5 +264,5 @@
 
 
 
-;(add real_y num_x)
+(add rational_y num_x)
 ;(add num_x num_x real_y num_x)

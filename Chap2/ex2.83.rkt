@@ -13,7 +13,7 @@
       (let ((upper_type (get-upper-type type)))
            (let ((proc (get-coercion type upper_type)))
                 (if (not-null? proc)
-                    (proc datum upper_type)
+                    (proc datum)
                     (error "<raise> no matching coercion proc for these types : " (list datum upper_type)))))))
             
         
