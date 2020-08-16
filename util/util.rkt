@@ -17,15 +17,29 @@
 (define (square x) (* x x))
 (define (not-null? object) (not (null? object)))
 
+(define (accumulate proc init seq)
+    (if (null? seq)
+        init
+        (append (proc (car seq))
+                (accumulate proc init (cdr seq)))))
+            
+(define (flatmap proc seq)
+    (if (pair? seq)
+        (accumulate append nil (map proc seq))
+        seq))
+
 ; ===========================================================================
 ; Hash Table operations 
 ; ===========================================================================
 (define *op-table* (make-hash))
 
 (define (put op type proc)
+    ;(display op) (display " / ") (display type) (display " / ") (display proc) (newline)
   (hash-set! *op-table* (list op type) proc))
 
 (define (get op type)
+    ;(display op) (display " / ") (display type) (display " / ") 
+    ;(display (hash-ref! *op-table* (list op type) '())) (newline)
   (hash-ref! *op-table* (list op type) '()))
 
 (define *coercion-table* (make-hash))
@@ -50,8 +64,7 @@
           (else (error "[ERROR]<contents> Bad type ----" datum))))
     
 (define (attach-tag type-tag datum)
-    (cond ((eq? type-tag 'scheme-number) datum)
-          (else (cons type-tag datum))))
+    (cons type-tag datum))
     
     
 ; ===========================================================================
@@ -65,7 +78,7 @@
     (let ((type (type-tag datum))
           (content (contents datum)))
       (let ((upper_type (get-upper-type type)))
-           (let ((proc (get-coercion type upper_type)))
+          (let ((proc (get-coercion type upper_type)))
                 (if (not-null? proc)
                     (proc datum)
                     (error "<raise> no matching coercion proc for these types : " (list datum upper_type)))))))
@@ -83,6 +96,9 @@
           ((eq? level 3) 'real)
           ((eq? level 4) 'complex)
           (else (error "<get-tower-type-by-level> no matching level in type-tower : " (list level)))))
+      
+
+
                 
 ; ===========================================================================
 ; apply-generic : Multi operands compose of different types
@@ -141,18 +157,6 @@
                 (cons (raise-until-target target (car args))
                       (raise-args (cdr args)))))
         (raise-args args))
-
-    ; =======================================================================
-    ; coercion - convert
-    ; =======================================================================
-    ; (define (convert target args)
-    ;     (define (toTarget arg)
-    ;         (let ((type-tag (type-tag arg)))
-    ;             (let ((proc (get-coercion type-tag target)))
-    ;                 (if (not-null? proc)
-    ;                     (proc arg)
-    ;                     arg))))
-    ;     (map toTarget args))
 
     ; =======================================================================
     ; procedures
