@@ -5,8 +5,121 @@
 ;                     Generic-arithmetic - PACKAGES
 ; =================================================================
 (define (install-generic-arithmetic-package)
-  (put '=zero? 'scheme-number (lambda (x) (= x 0)))
-  (put 'equ? '(scheme-number scheme-number) (lambda (x y) (= x y)))
+
+  
+  (define (not-null? object) (not (null? object)))                    
+  (define (get-tower-level-by-type type)
+    (cond ((eq? type 'scheme-number) 1)
+          ((eq? type 'rational) 2)
+          ((eq? type 'real) 3)
+          ((eq? type 'complex) 4)
+          (else (error "<get-tower-level-by-type> no matching type in type-tower : " (list type)))))
+
+(define (get-tower-type-by-level level)
+    (cond ((eq? level 1) 'scheme-number)
+        ((eq? level 2) 'rational)
+        ((eq? level 3) 'real)
+        ((eq? level 4) 'complex)
+        (else (error "<get-tower-type-by-level> no matching level in type-tower : " (list level)))))                
+      
+  ;=================================================================
+  ; apply-generic : Multi operands compose of different types
+  ;===========================================================================        
+  (define (apply-generic op . args)
+      ; =======================================================================
+      ; internal fucntions
+      ; =======================================================================
+      (define (not-null? x) (not (null? x)))
+
+            
+      ; match? target , type-tag
+      (define (find-type target type-tags args)
+          (if (null? type-tags)
+              target
+              (let ((type1 (car type-tags))
+                    (arg1 (car args)))
+                (let ((target-coercion (get-coercion type1 target)))
+                    (if (not-null? target-coercion)
+                        (find-type target (cdr type-tags) (cdr args))
+                        nil)))))
+      
+      ; Target looper
+      (define (find-target type-tags args)
+          (display "             <find-target> type-tags : ") (display type-tags) (newline)
+          (display "             <find-target> args : ") (display args) (newline)
+          (if (null? type-tags) 
+              nil
+              (let ((target (find-type (car type-tags) (cdr type-tags) (cdr args))))
+                  (if (null? target) 
+                      (find-target (cdr type-tags) (cdr args))
+                      target))))
+                   
+      ; =======================================================================
+      ; Exercise 2.84
+      ; =======================================================================
+      (define (find-highest-type type-tags)
+          (define (search type-tags result)
+              (if (null? type-tags)
+                  result
+                  (let ((level (get-tower-level-by-type (car type-tags))))
+                      (if (< result level)
+                          (search (cdr type-tags) level)
+                          (search (cdr type-tags) result)))))
+          (get-tower-type-by-level (search type-tags 0)))
+                                                 
+  
+      (define (convert target args)
+          (define (raise-until-target target arg)
+              (if (eq? target (type-tag arg))
+                  arg
+                  (raise-until-target target (apply-generic 'raise arg))))
+              
+          (define (raise-args args)
+              (if (null? args)
+                  nil
+                  (cons (raise-until-target target (car args))
+                        (raise-args (cdr args)))))
+          (raise-args args))
+  
+      ; =======================================================================
+      ; procedures
+      ; =======================================================================
+      (display "[DBG][START] apply-generic\n")
+      (display "    <apply-generic> op : ") (display op) (newline)
+      (display "    <apply-generic> args : ") (display args) (newline)
+      (let ((type-tags (map type-tag args)))
+          (let ((proc (get op type-tags)))
+              (display "    <apply-generic> type-tags : ") (display type-tags) (newline)
+              (display "    <apply-generic> proc : ") (display proc) (newline)
+              (if (not-null? proc)    
+                  (apply proc (map contents args))
+                  (let ((target (find-highest-type type-tags)))
+                      (display "    <apply-generic> target : ") (display target) (newline)
+                      (cond ((and (not-null? target) (not (= 1 (length args)))) (drop (apply apply-generic (append (list op) (convert target args)))))
+                            ((= 1 (length args)) args)
+                            (else (error "No method for These Types: APPLY-GENERIC" (list op type-tags)))))))))
+                      
+  ; ===========================================================================
+  ; drop : drop datum until possible
+  ; ===========================================================================        
+  (define (drop datum)
+    (display "    [DBG][START] drop\n")
+    (display "\t\t<drop> datum : ") (display datum) (newline)
+    (if (= 1 (get-tower-level-by-type (type-tag datum)))
+        datum
+        (begin
+          (let ((dropped_datum (apply apply-generic (append (list 'project) (list datum)))))
+               (let ((restored_datum (apply apply-generic (append (list 'raise) (list dropped_datum)))))
+                     (let ((equ_proc (get 'equ? (list (type-tag datum) (type-tag restored_datum)))))
+                          (if (not-null? equ_proc)
+                              (if (apply apply-generic (append (list 'equ?) (list datum restored_datum)))
+                                  (drop dropped_datum)
+                                  datum)
+                              datum)))))))
+                      
+
+  (put 'drop 'generic-arithmetic drop)
+  (put 'apply-generic 'generic-arithmetic apply-generic)
   '([LOG][DONE]install-generic-arithmetic-package))
 
 ; ===========================================================
@@ -30,7 +143,7 @@
   (put 'div '(scheme-number scheme-number) (lambda (x y) (tag (/ x y))))
   (put 'make 'scheme-number make-scheme-number)
   (put 'raise '(scheme-number) scheme-number->rational)
-  
+  (put '=zero? 'scheme-number (lambda (x) (= x 0)))
   '([LOG][DONE]install-scheme-number-package))
 
 ; ===========================================================
@@ -111,7 +224,7 @@
   
            
   (define (real->rational z)
-    (let ((rat (rationalize (inexact->exact 0.06) 1/100)))
+    (let ((rat (rationalize (inexact->exact z) 1/100)))
          ((get 'make 'rational)
                (numerator rat)
                (denominator rat))))
@@ -121,9 +234,9 @@
   
   (put 'make-real 'real make-real)
   (put 'real-part 'real real-part)
-  (put 'equ? 'real equ?)
   (put '=zero? 'real =zero?)
   (put 'make 'real make-real)
+  (put 'equ? '(real real) equ?)
   (put 'add '(real real) (lambda (z1 z2) (tag (add-real z1 z2))))
   (put 'sub '(real real) (lambda (z1 z2) (tag (sub-real z1 z2))))
   (put 'mul '(real real) (lambda (z1 z2) (tag (mul-real z1 z2))))
@@ -189,7 +302,7 @@
   (put '=zero? 'rectangular =zero?)
   (put 'equ? '(rectangular rectangular) equ?)
   (put 'real-part '(rectangular) real-part)
-  (put 'imag-part 'rectangular imag-part)
+  (put 'imag-part '(rectangular) imag-part)
   (put 'magnitude 'rectangular magnitude)
   (put 'angle 'rectangular angle)
   (put 'make-from-real-imag 'rectangular (lambda (x y) (tag (make-from-real-imag x y))))
@@ -204,23 +317,23 @@
   (define (make-from-real-imag x y) ((get 'make-from-real-imag 'rectangular) x y))
   (define (make-from-mag-ang r a) ((get 'make-from-mag-ang 'polar) r a))
   (define (add-complex z1 z2) (make-from-real-imag (+ (real-part z1) (real-part z2))
-						    (+ (imag-part z1) (imag-part z2))))
+						                                       (+ (imag-part z1) (imag-part z2))))
 
   (define (sub-complex z1 z2) (make-from-real-imag (- (real-part z1) (real-part z2))
-						    (- (imag-part z1) (imag-part z2))))
+						                                       (- (imag-part z1) (imag-part z2))))
                                 
   (define (mul-complex z1 z2) (make-from-mag-ang (* (magnitude z1) (magnitude z2))
-						    (+ (angle z1) (angle z2))))
+						                                     (+ (angle z1) (angle z2))))
 
   (define (div-complex z1 z2) (make-from-mag-ang (/ (magnitude z1) (magnitude z2))
-						    (- (angle z1) (angle z2))))
+						                                     (- (angle z1) (angle z2))))
   (define (tag z) (attach-tag 'complex z))
 
   ; Exercise 2.77
-  (define (magnitude z) (apply-generic 'magnitude z))
-  (define (real-part z) (apply-generic 'real-part z))
-  (define (imag-part z) (apply-generic 'imag-part z))
-  (define (angle z) (apply-generic 'angle z))
+  (define (magnitude z) ((get 'apply-generic 'generic-arithmetic) 'magnitude z))
+  (define (real-part z) ((get 'apply-generic 'generic-arithmetic) 'real-part z))
+  (define (imag-part z) ((get 'apply-generic 'generic-arithmetic) 'imag-part z))
+  (define (angle z) ((get 'apply-generic 'generic-arithmetic) 'angle z))
   
   ; Exercise 2.79
   (define (equ? x y) (apply-generic 'equ? x y))
@@ -263,11 +376,11 @@
 (install-complex-package)
 
 
- (define (apply-repeat proc op args)
-    (cond ((= (length args) 1) (car args))
-          ((null? (cadr args)) (apply proc (append (list op) (list (car args) (cadr args)))))
-          (else (apply-repeat proc op (append (list (apply proc (append (list op) (list (car args) (cadr args)))))
-                                      (cddr args))))))
+(define (apply-repeat proc op args)
+  (cond ((= (length args) 1) (car args))
+        ((null? (cadr args)) (apply proc (append (list op) (list (car args) (cadr args)))))
+        (else (apply-repeat proc op (append (list (apply proc (append (list op) (list (car args) (cadr args)))))
+                                    (cddr args))))))
 
 (define (add . args) (apply-repeat apply-generic 'add args))
 (define (sub . args) (apply-repeat apply-generic 'sub args))
@@ -276,21 +389,15 @@
 (define (equ? x y) (apply-generic 'equ? x y))
 (define (=zero? x) (apply-generic '=zero? x))
 (define (raise datum) (apply-generic 'raise datum))
-(define (project datum) (apply-generic 'project datum))
-(define (make-scheme-number n)
-  ((get 'make 'scheme-number) n))
+(define (project datum) ((get 'apply-generic 'generic-arithmetic) 'project datum))
+(define (drop datum) ((get 'drop 'generic-arithmetic) datum))
+(define (apply-generic op . args) (apply (get 'apply-generic 'generic-arithmetic) (append (list op) (list (car args) (cadr args)))))
 
-(define (make-rational n d)
-  ((get 'make 'rational) n d))
-
-(define (make-from-real-imag x y)
-  ((get 'make-from-real-imag 'complex) x y))
-
-(define (make-from-mag-ang x y)
-  ((get 'make-from-mag-ang 'complex) x y))
-
-(define (make-real x)
-  ((get 'make-real 'real) x))
+(define (make-scheme-number n) ((get 'make 'scheme-number) n))
+(define (make-rational n d) ((get 'make 'rational) n d))
+(define (make-from-real-imag x y) ((get 'make-from-real-imag 'complex) x y))
+(define (make-from-mag-ang x y) ((get 'make-from-mag-ang 'complex) x y))
+(define (make-real x) ((get 'make-real 'real) x))
 
 (define (number->complex x) (make-from-real-imag x 0))
 (define (number->rational x) (make-rational x 1))
@@ -298,13 +405,13 @@
 (put-coercion 'scheme-number 'complex number->complex)
 (put-coercion 'scheme-number 'rational number->rational)
 (put-coercion 'scheme-number 'real number->real)
-
+(put-coercion 'rational 'real (get 'raise 'rational))
 
 (define complex_x (make-from-real-imag 10 15))
-(define complex_y (make-from-real-imag 10 15))
+(define complex_y (make-from-real-imag 10 0))
 
 (define real_x (make-real 0))
-(define real_y (make-real 10.5))
+(define real_y (make-real 10))
 
 (define mag_x (make-from-mag-ang 0 0))
 (define mag_y (make-from-mag-ang 10 6))
@@ -316,18 +423,11 @@
 (define y 10)
 
 (define rational_x (make-rational 10 15))
-(define rational_y (make-rational 20 25))
+(define rational_y (make-rational 20 1))
 
 
-(project complex_x)
-(project real_y)
-(project rational_x)
+(add complex_y num_x)
 
-;(add rational_y num_x)
-;(raise x)
-;(raise real_y)
-;(raise num_x)
-;(raise rational_x)
-;(add num_x num_x real_y num_x)
+
 
 
