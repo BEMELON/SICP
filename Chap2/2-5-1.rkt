@@ -136,6 +136,11 @@
   (define (make-scheme-number x)
     (tag x))
     
+  (put 'square 'scheme-number (lambda (x) (tag (square x))))
+  (put 'sqrt 'scheme-number (lambda (x) (sqrt x)))
+  (put 'atan'(scheme-number scheme-number) (lambda (x y) (atan x y)))
+  (put 'cos 'scheme-number (lambda (x) (cos x)))
+  (put 'sin 'scheme-number (lambda (x) (sin x)))
   (put 'equ? '(scheme-number scheme-number) (lambda (x y) (tag (= x y))))
   (put 'add '(scheme-number scheme-number) (lambda (x y) (tag (+ x y))))
   (put 'sub '(scheme-number scheme-number) (lambda (x y) (tag (- x y))))
@@ -183,6 +188,21 @@
   
   (define (=zero? x) (= (numer x) 0))
   
+  
+  (define (_square x) (tag (make-rat (square (numer x))
+                                     (square (denom x)))))
+                                   
+  (define (_sqrt x) (tag (make-rat (sqrt (numer x))
+                                   (sqrt (denom x)))))
+                                 
+  (define (_atan x y) (tag (make-rat x y)))
+  
+  (define (_cos x) (tag (make-rat (cos (numer x))
+                                  (cos (denom x)))))
+                                
+  (define (_sin x) (tag (make-rat (sin (numer x))
+                                  (sin (denom x)))))
+  
   ; Exercise 2.83
   (define (rational->real datum) 
     (define (toFloatingPoint x) (* 1.0 x))
@@ -194,6 +214,11 @@
   (put 'project '(rational) rational->scheme-number)
   (put 'raise '(rational) rational->real)
   
+  (put 'square 'rational _square)
+  (put 'sqrt 'rational _sqrt)
+  (put 'atan'(rational rational) _atan)
+  (put 'cos 'rational _cos)
+  (put 'sin 'rational _sin)
   (put '=zero? 'rational =zero?)
   (put 'equ? '(rational rational) equ?)
   (put 'add '(rational rational) (lambda (x y) (tag (add-rat x y))))
@@ -218,6 +243,12 @@
   (define (mul-real x y) (* x y))
   (define (div-real x y) (/ x y))
   
+  (define (_square z) (tag (square (real-part z))))
+  (define (_sqrt z) (tag (sqrt (real-part z))))
+  (define (_atan x y) (tag (atan (real-part x y))))
+  (define (_cos x) (tag (cos (real-part x))))
+  (define (_sin x) (tag (sin (real-part x))))
+  
   ; Exercise 2.83
   (define (real->complex z)
     ((get 'make-from-real-imag 'complex) (real-part z) 0))
@@ -232,6 +263,11 @@
   (put 'raise '(real) real->complex)
   (put 'project '(real) real->rational)
   
+  (put 'square 'real _square)
+  (put 'sqrt 'real _sqrt)
+  (put 'atan'(real real) _atan)
+  (put 'cos 'real _cos)
+  (put 'sin 'real _sin)
   (put 'make-real 'real make-real)
   (put 'real-part 'real real-part)
   (put '=zero? 'real =zero?)
@@ -280,21 +316,36 @@
 ; ===========================================================
 (define (install-rectangular-package)
   ;; internal procedures
+  (define (apply-generic op args) (apply (get 'apply-generic 'generic-arithmetic) (append (list op) args)))
+  (define (add x y) (apply-generic 'add (list x y)))
+  (define (sub x y) (apply-generic 'sub (list x y)))
+  (define (div x y) (apply-generic 'div (list x y)))
+  (define (mul x y) (apply-generic 'mul (list x y)))
+  (define (equ?? x y) (apply-generic 'equ? (list x y)))
+  (define (=zero?? x y) (apply-generic '=zero? (list x y)))
+  
+  ;; must define
+  (define (square x) (apply-generic 'square x))
+  (define (sqrt x) (apply-generic 'sqrt x))
+  (define (atan x y) (apply-generic 'atan (append x y)))
+  (define (cos x) (apply-generic 'cos x))
+  (define (sin x) (apply-generic 'sin x))
+  
   (define (real-part z) (car z))
-  (define (imag-part z) (cdr z))
-  (define (make-from-real-imag x y) (cons x y))
-  (define (magnitude z) (sqrt (+ (square (real-part z))
-                                 (square (imag-part z)))))
+  (define (imag-part z) (cadr z))
+  (define (make-from-real-imag x y) (list x y))
+  (define (magnitude z) (sqrt (add (square (real-part z))
+                                   (square (imag-part z)))))
                                
   (define (angle z) (atan (imag-part z) (real-part z)))
   
-  (define (make-from-mag-ang r a) (cons (* r (cos a)) (* r (sin a))))
+  (define (make-from-mag-ang r a) (cons (mul r (cos a)) (mul r (sin a))))
   
-  (define (equ? x y) (and (= (real-part x) (real-part y))
-                          (= (imag-part x) (imag-part y))))
+  (define (equ? x y) (and (equ?? (real-part x) (real-part y))
+                          (equ?? (imag-part x) (imag-part y))))
   
-  (define (=zero? x) (and (= (real-part x) 0)
-                          (= (imag-part x) 0)))
+  (define (=zero? x) (and (=zero?? (real-part x) 0)
+                          (=zero?? (imag-part x) 0)))
                         
   ;; interface to the rest of the system
   (define (tag x) (attach-tag 'rectangular x))
@@ -314,19 +365,27 @@
 ;              COMPLEX - PACKAGE
 ; ===========================================================
 (define (install-complex-package)
+  (define (apply-generic op args) (apply (get 'apply-generic 'generic-arithmetic) (append (list op) args)))
+  (define (add x y) (apply-generic 'add (list x y)))
+  (define (sub x y) (apply-generic 'sub (list x y)))
+  (define (div x y) (apply-generic 'div (list x y)))
+  (define (mul x y) (apply-generic 'mul (list x y)))
+  (define (equ?? x y) (apply-generic 'equ? (list x y)))
+  (define (=zero?? x y) (apply-generic '=zero? (list x y)))
+  
   (define (make-from-real-imag x y) ((get 'make-from-real-imag 'rectangular) x y))
   (define (make-from-mag-ang r a) ((get 'make-from-mag-ang 'polar) r a))
-  (define (add-complex z1 z2) (make-from-real-imag (+ (real-part z1) (real-part z2))
-						                                       (+ (imag-part z1) (imag-part z2))))
+  (define (add-complex z1 z2) (make-from-real-imag (add (real-part z1) (real-part z2))
+						                                       (add (imag-part z1) (imag-part z2))))
 
-  (define (sub-complex z1 z2) (make-from-real-imag (- (real-part z1) (real-part z2))
-						                                       (- (imag-part z1) (imag-part z2))))
+  (define (sub-complex z1 z2) (make-from-real-imag (sub (real-part z1) (real-part z2))
+						                                       (sub (imag-part z1) (imag-part z2))))
                                 
-  (define (mul-complex z1 z2) (make-from-mag-ang (* (magnitude z1) (magnitude z2))
-						                                     (+ (angle z1) (angle z2))))
+  (define (mul-complex z1 z2) (make-from-mag-ang (mul (magnitude z1) (magnitude z2))
+						                                     (add (angle z1) (angle z2))))
 
-  (define (div-complex z1 z2) (make-from-mag-ang (/ (magnitude z1) (magnitude z2))
-						                                     (- (angle z1) (angle z2))))
+  (define (div-complex z1 z2) (make-from-mag-ang (div (magnitude z1) (magnitude z2))
+						                                     (sub (angle z1) (angle z2))))
   (define (tag z) (attach-tag 'complex z))
 
   ; Exercise 2.77
@@ -407,7 +466,7 @@
 (put-coercion 'scheme-number 'real number->real)
 (put-coercion 'rational 'real (get 'raise 'rational))
 
-(define complex_x (make-from-real-imag 10 15))
+(define complex_x (make-from-real-imag 10 (make-real 10.5)))
 (define complex_y (make-from-real-imag 10 0))
 
 (define real_x (make-real 0))
@@ -425,9 +484,16 @@
 (define rational_x (make-rational 10 15))
 (define rational_y (make-rational 20 1))
 
+(define complex-real (make-from-real-imag 10 (make-real 10.5)))
+(define complex-rational (make-from-real-imag 10 (make-rational 10 2)))
+(define complex-number (make-from-real-imag 10 15))
 
-(add complex_y num_x)
 
+; (add complex_x complex_x)
+; (add complex-rational complex-rational)
+; (add complex-number complex-number)
 
+; (add complex-rational complex-real)
+; (add complex-rational complex-number)
 
 
