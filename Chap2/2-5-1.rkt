@@ -429,70 +429,101 @@
 ;                     Polynomial - PACKAGE
 ; ===========================================================
 (define (install-polynomial-package)
+  (define (apply-generic op args) (apply (get 'apply-generic 'generic-arithmetic) (append (list op) args)))
   (define (make-poly variable term-list) (list variable term-list))
   (define (variable p) (car p))
-  (define (term-list p) (cdr p))
+  (define (term-list p) (cadr p))
+  (define (add x y) (apply-generic 'add (cons x y)))
   (define (the-empty-termlist) '())
   (define (first-term term-list) (car term-list))
   (define (rest-terms term-list )(cdr term-list))
-  (define (empty-termlist? term-list) (null? (first-term term-list)))
+  (define (empty-termlist? term-list) (or (null? term-list) (eq? '() (first-term term-list))))
   (define (make-term order coeff) (list order coeff))
   (define (order term) (car term))
   (define (coeff term) (cdr term))
+  (define (negation p) (mul-poly (make-poly (variable p)
+                                            (list (cons 0 -1)))
+                                  p))
   ; Exercise 2.87
-  (define (=zero? p)
-    (display p) (newline)
-    (define (term-zero? t) (empty-termlist? t))
-    (term-zero? (term-list p)))
+  (define (=zero? x) 
+    (define (poly? x) (pair? x)) 
+    (cond ((number? x) (= x 0)) 
+          ((poly? x) false) 
+          (else (error "[ERROR] <=zero?> Unknown Type --" (list x))))) 
   
   (define (adjoin-terms term term-list)
-    (if (=zero? (coeff term))
+    ;(display "[DBG] adjoin-terms  term : ")(display term) (newline)
+    ;(display "[DBG] adjoin-terms  term-list  : ") (display term-list) (newline)
+    (if (=zero? term)
         term-list
         (cons term term-list)))
   
+  
+  (define (add-poly p1 p2)        
+    ;(display "[DBG] <add-poly> p1 : ") (display p1) (newline)
+    ;(display "[DBG] <add-poly> p2 : ")(display p2) (newline)
+    (if (same-variable? (variable p1) (variable p2))
+        (make-poly (variable p1)
+                   (add-terms (term-list p1) (term-list p2)))
+        (error "Polys not in same var: ADD-POLY" (list p1 p2))))
+  
   (define (add-terms l1 l2)
+    ;(display "[DBG] <add-terms> l1 : ")(display l1) (newline)
+    ;(display "[DBG] <add-terms> l2 : ")(display l2) (newline)
     (cond ((empty-termlist? l1) l2)
           ((empty-termlist? l2) l1)
           (else
             (let ((t1 (first-term l1))
                   (t2 (first-term l2)))
+                ;(display "[DBG]\t <add-terms> t1 : " ) (display t1) (newline)
+                ;(display "[DBG]\t <add-terms> t2 : " ) (display t2) (newline)
                 (cond ((> (order t1) (order t2)) (adjoin-terms t1 (add-terms (rest-terms l1) l2)))
                       ((< (order t1) (order t2)) (adjoin-terms t2 (add-terms l1 (rest-terms l2))))
-                      (else (adjoin-terms 
-                                          (make-term (order t1)
+                      (else (adjoin-terms (make-term (order t1)
                                                      (add (coeff t1) (coeff t2)))
                                           (add-terms (rest-terms l1) (rest-terms l2)))))))))
-  (define (add-poly p1 p2)            
-    (if (same-variable? (variable p1) (variable p2))
-        (make-poly (variable p1)
-                   (add-terms (term-list p1) (term-list p2)))
-        (error "Polys not in same var: ADD-POLY" (list p1 p2))))
-      
+                                        
   (define (mul-poly p1 p2)
-    (define (mul-term-by-all-terms T P)
-      (if (empty-termlist? P)
-          (the-empty-termlist)
-          (adjoin-terms (make-term (add (order T) (order (first-term P)))
-                                   (mul (coeff T) (coeff (first-term P))))
-                       (mul-term-by-all-terms T (rest-terms P)))))
-    
-    (define (mul-terms t1 t2)
-      (if (empty-termlist? t1) 
-          (the-empty-termlist)
-          (add-terms (mul-term-by-all-terms (first-term t1) t2)
-                     (mul-terms (rest-terms t1) t2))))
-             
+    ;(display "[DBG] <mul-poly> p1 : ") (display p1) (newline)
+    ;(display "[DBG] <mul-poly> p2 : ") (display p2) (newline)
     (if (same-variable? (variable p1) (variable p2))
         (make-poly (variable p1)
                    (mul-terms (term-list p1) (term-list p2)))
         (error "Polys not in same var: MUL-POLY" (list p1 p2))))
+  
+  (define (mul-terms t1 t2)
+    ;(display "[DBG] <mul-terms> t1 : ") (display t1) (newline)
+    ;(display "[DBG] <mul-terms> t2 : ") (display t2) (newline)
+      (if (empty-termlist? t1) 
+          (the-empty-termlist)
+          (add-terms (mul-term-by-all-terms (first-term t1) t2)
+                     (mul-terms (rest-terms t1) t2))))
+  
+  (define (mul-term-by-all-terms T P)
+    ;(display "[DBG] <mul-term-by-all-terms> T : ") (display T) (newline)
+    ;(display "[DBG] <mul-term-by-all-terms> P : ") (display P) (newline)
+      (if (empty-termlist? P)
+          (the-empty-termlist)
+          (adjoin-terms (make-term (+ (order T) (order (first-term P)))
+                                   (mul (coeff T) (coeff (first-term P))))
+                        (mul-term-by-all-terms T (rest-terms P)))))  
+                     
+  
+  ; Exercise 2.88
+  (define (sub-poly p1 p2)
+    ;(define n_p2 (negation p2))
+    ;(display "\n[DBG] <sub-poly> (negatioin p2) : ") (display n_p2)(newline)
+    (add-poly p1
+              (negation p2)))
+               
       
   (define (tag p) (attach-tag 'polynomial p))
   
-  ; Exercise 2.87
-  (put '=zero? '(polynomial) =zero?)
+  (put '=zero? '(polynomial) =zero?) ; Exercise 2.87
+  (put 'negation '(polynomial) (lambda (p1) (tag (negation p1)))) ; Exercise 2.88
   (put 'add '(polynomial polynomial) (lambda (p1 p2) (tag (add-poly p1 p2))))
   (put 'mul '(polynomial polynomial) (lambda (p1 p2) (tag (mul-poly p1 p2))))
+  (put 'sub '(polynomial polynomial) (lambda (p1 p2) (tag (sub-poly p1 p2)))) ; Exercise 2.88
   (put 'make 'polynomial (lambda (var term-list) (tag (make-poly var term-list))))
   
   
@@ -512,9 +543,9 @@
 
 (define (apply-repeat proc op args)
   (cond ((= (length args) 1) (car args))
-        ((null? (cadr args)) (apply proc (append (list op) (list (car args) (cadr args)))))
-        (else (apply-repeat proc op (append (list (apply proc (append (list op) (list (car args) (cadr args)))))
-                                    (cddr args))))))
+        ((null? (cadr args)) (apply proc (append (list op) args)))
+        (else (apply-repeat proc op (append (list (apply proc (append (list op) args)))
+                                            (cddr args))))))
 
 (define (add . args) (apply-repeat apply-generic 'add args))
 (define (sub . args) (apply-repeat apply-generic 'sub args))
@@ -546,11 +577,13 @@
 (define complex-real (make-from-real-imag 10 (make-real 10.5)))(display "[done] complex <scheme-number , real> : ") (display complex-real) (newline)
 (define complex-rational (make-from-real-imag 10 (make-rational 10 2)))(display "[done] complex <scheme-number , rational> : ") (display complex-rational) (newline)
 (define complex-number (make-from-real-imag 10 15))(display "[done] complex <scheme-number , scheme-number> : ") (display complex-number) (newline)
-(define poly (make-polynomial 'x (list (cons 2 3) (cons 1 2) (cons 0 3)))) (display "[done] make-poly : ") (display poly) (newline)
-(define poly2 (make-polynomial 'x '())) (display "[done] make-poly : ") (display poly2) (newline)
+(define poly (make-polynomial 'x (list (cons 3 1) (cons 2 1) (cons 0 1)))) (display "[done] make-poly : ") (display poly) (newline)
+(define poly2 (make-polynomial 'x (list (cons 0 3)))) (display "[done] make-poly : ") (display poly2) (newline)
 ;(add complex-rational complex-rational)
 ;(add complex-number complex-number)
 ;(add complex-rational complex-real)
 ;(add complex-rational complex-number)
 
-
+;(add poly poly)
+;(mul poly poly2)
+(sub poly poly2)

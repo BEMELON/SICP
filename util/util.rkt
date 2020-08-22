@@ -17,7 +17,7 @@
 (define (not-null? object) (not (null? object)))
 (define (same-variable? v1 v2)
     (if (and (symbol? v1) (symbol? v2))
-        (= v1 v2)
+        (eq? v1 v2)
         (error "[ERROR] <same-variable?> Bad type --" (list v1 v2))))
 
 (define (accumulate proc init seq)
