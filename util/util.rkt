@@ -9,13 +9,16 @@
 (#%provide runtime square not-null?
            put get 
            put-coercion get-coercion
-           type-tag contents attach-tag
+           type-tag contents attach-tag same-variable?
            flatmap)
 
-; Provide Runtime 
 (define (runtime) (current-inexact-milliseconds))
 (define (square x) (* x x))
 (define (not-null? object) (not (null? object)))
+(define (same-variable? v1 v2)
+    (if (and (symbol? v1) (symbol? v2))
+        (= v1 v2)
+        (error "[ERROR] <same-variable?> Bad type --" (list v1 v2))))
 
 (define (accumulate proc init seq)
     (if (null? seq)
@@ -38,8 +41,8 @@
   (hash-set! *op-table* (list op type) proc))
 
 (define (get op type)
-    ;   (display op) (display " / ") (display type) (display " / ") 
-    ;   (display (hash-ref! *op-table* (list op type) '())) (newline)
+       ;(display op) (display " / ") (display type) (display " / ") 
+       ;(display (hash-ref! *op-table* (list op type) '())) (newline)
   (hash-ref! *op-table* (list op type) '()))
 
 (define *coercion-table* (make-hash))

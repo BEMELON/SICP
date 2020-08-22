@@ -13,6 +13,7 @@
           ((eq? type 'rational) 2)
           ((eq? type 'real) 3)
           ((eq? type 'complex) 4)
+          ((eq? type 'polynomial) 5)
           (else (error "<get-tower-level-by-type> no matching type in type-tower : " (list type)))))
 
 (define (get-tower-type-by-level level)
@@ -20,6 +21,7 @@
         ((eq? level 2) 'rational)
         ((eq? level 3) 'real)
         ((eq? level 4) 'complex)
+        ((eq? level 5) 'polynomial)
         (else (error "<get-tower-type-by-level> no matching level in type-tower : " (list level)))))                
       
   ;=================================================================
@@ -423,6 +425,78 @@
   
   '([LOG][DONE]install-complex-package))
 
+; ===========================================================
+;                     Polynomial - PACKAGE
+; ===========================================================
+(define (install-polynomial-package)
+  (define (make-poly variable term-list) (list variable term-list))
+  (define (variable p) (car p))
+  (define (term-list p) (cdr p))
+  (define (the-empty-termlist) '())
+  (define (first-term term-list) (car term-list))
+  (define (rest-terms term-list )(cdr term-list))
+  (define (empty-termlist? term-list) (null? (first-term term-list)))
+  (define (make-term order coeff) (list order coeff))
+  (define (order term) (car term))
+  (define (coeff term) (cdr term))
+  ; Exercise 2.87
+  (define (=zero? p)
+    (display p) (newline)
+    (define (term-zero? t) (empty-termlist? t))
+    (term-zero? (term-list p)))
+  
+  (define (adjoin-terms term term-list)
+    (if (=zero? (coeff term))
+        term-list
+        (cons term term-list)))
+  
+  (define (add-terms l1 l2)
+    (cond ((empty-termlist? l1) l2)
+          ((empty-termlist? l2) l1)
+          (else
+            (let ((t1 (first-term l1))
+                  (t2 (first-term l2)))
+                (cond ((> (order t1) (order t2)) (adjoin-terms t1 (add-terms (rest-terms l1) l2)))
+                      ((< (order t1) (order t2)) (adjoin-terms t2 (add-terms l1 (rest-terms l2))))
+                      (else (adjoin-terms 
+                                          (make-term (order t1)
+                                                     (add (coeff t1) (coeff t2)))
+                                          (add-terms (rest-terms l1) (rest-terms l2)))))))))
+  (define (add-poly p1 p2)            
+    (if (same-variable? (variable p1) (variable p2))
+        (make-poly (variable p1)
+                   (add-terms (term-list p1) (term-list p2)))
+        (error "Polys not in same var: ADD-POLY" (list p1 p2))))
+      
+  (define (mul-poly p1 p2)
+    (define (mul-term-by-all-terms T P)
+      (if (empty-termlist? P)
+          (the-empty-termlist)
+          (adjoin-terms (make-term (add (order T) (order (first-term P)))
+                                   (mul (coeff T) (coeff (first-term P))))
+                       (mul-term-by-all-terms T (rest-terms P)))))
+    
+    (define (mul-terms t1 t2)
+      (if (empty-termlist? t1) 
+          (the-empty-termlist)
+          (add-terms (mul-term-by-all-terms (first-term t1) t2)
+                     (mul-terms (rest-terms t1) t2))))
+             
+    (if (same-variable? (variable p1) (variable p2))
+        (make-poly (variable p1)
+                   (mul-terms (term-list p1) (term-list p2)))
+        (error "Polys not in same var: MUL-POLY" (list p1 p2))))
+      
+  (define (tag p) (attach-tag 'polynomial p))
+  
+  ; Exercise 2.87
+  (put '=zero? '(polynomial) =zero?)
+  (put 'add '(polynomial polynomial) (lambda (p1 p2) (tag (add-poly p1 p2))))
+  (put 'mul '(polynomial polynomial) (lambda (p1 p2) (tag (mul-poly p1 p2))))
+  (put 'make 'polynomial (lambda (var term-list) (tag (make-poly var term-list))))
+  
+  
+  '([LOG][DONE]install-polynomial-package))
 ; =================================================================
 ;                         INSTALL - PACKAGES
 ; =================================================================
@@ -433,6 +507,7 @@
 (install-polar-package)
 (install-rectangular-package)
 (install-complex-package)
+(install-polynomial-package)
 
 
 (define (apply-repeat proc op args)
@@ -450,13 +525,14 @@
 (define (raise datum) (apply-generic 'raise datum))
 (define (project datum) ((get 'apply-generic 'generic-arithmetic) 'project datum))
 (define (drop datum) ((get 'drop 'generic-arithmetic) datum))
-(define (apply-generic op . args) (apply (get 'apply-generic 'generic-arithmetic) (append (list op) (list (car args) (cadr args)))))
+(define (apply-generic op . args) (apply (get 'apply-generic 'generic-arithmetic) (append (list op) args)))
 
 (define (make-scheme-number n) ((get 'make 'scheme-number) n))
 (define (make-rational n d) ((get 'make 'rational) n d))
 (define (make-from-real-imag x y) ((get 'make-from-real-imag 'complex) x y))
 (define (make-from-mag-ang x y) ((get 'make-from-mag-ang 'complex) x y))
-(define (make-real x) ((get 'make-real 'real) x))
+(define (make-real x) ((get 'make 'real) x))
+(define (make-polynomial var term-list) ((get 'make 'polynomial) var term-list))
 
 (define (number->complex x) (make-from-real-imag x 0))
 (define (number->rational x) (make-rational x 1))
@@ -466,34 +542,15 @@
 (put-coercion 'scheme-number 'real number->real)
 (put-coercion 'rational 'real (get 'raise 'rational))
 
-(define complex_x (make-from-real-imag 10 (make-real 10.5)))
-(define complex_y (make-from-real-imag 10 0))
-
-(define real_x (make-real 0))
-(define real_y (make-real 10))
-
-(define mag_x (make-from-mag-ang 0 0))
-(define mag_y (make-from-mag-ang 10 6))
-
-(define num_x (make-scheme-number 10))
-(define num_y (make-scheme-number 15))
-
-(define x 10)
-(define y 10)
-
-(define rational_x (make-rational 10 15))
-(define rational_y (make-rational 20 1))
-
-(define complex-real (make-from-real-imag 10 (make-real 10.5)))
-(define complex-rational (make-from-real-imag 10 (make-rational 10 2)))
-(define complex-number (make-from-real-imag 10 15))
-
-
-; (add complex_x complex_x)
-; (add complex-rational complex-rational)
-; (add complex-number complex-number)
-
-; (add complex-rational complex-real)
-; (add complex-rational complex-number)
+; Test 
+(define complex-real (make-from-real-imag 10 (make-real 10.5)))(display "[done] complex <scheme-number , real> : ") (display complex-real) (newline)
+(define complex-rational (make-from-real-imag 10 (make-rational 10 2)))(display "[done] complex <scheme-number , rational> : ") (display complex-rational) (newline)
+(define complex-number (make-from-real-imag 10 15))(display "[done] complex <scheme-number , scheme-number> : ") (display complex-number) (newline)
+(define poly (make-polynomial 'x (list (cons 2 3) (cons 1 2) (cons 0 3)))) (display "[done] make-poly : ") (display poly) (newline)
+(define poly2 (make-polynomial 'x '())) (display "[done] make-poly : ") (display poly2) (newline)
+;(add complex-rational complex-rational)
+;(add complex-number complex-number)
+;(add complex-rational complex-real)
+;(add complex-rational complex-number)
 
 
