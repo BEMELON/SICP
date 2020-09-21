@@ -1,4 +1,5 @@
 #lang sicp
+(#%provide make-queue)
 
 ; CONSTRUCTOR
 ; Exercise 3.22
@@ -11,14 +12,20 @@
           (rear-ptr (cons '() '())))
       
       (define (print-queue)
-          (display "Queue : ") (display front-ptr) (newline))
+          (define (print ptr)
+              (if (null? ptr)
+                  (newline)
+                  (begin (display (car ptr)) (display " ")
+                         (print (cdr ptr)))))
+          (display "Queue : ") 
+          (print front-ptr))
       
       ; SELECTOR
       (define (empty-queue?) (equal? front-ptr (cons '() '())))
                                   
       (define (front-queue)
           (if (empty-queue?)
-              (error "<front-queue> Front-queue called with an empty queue")
+              (error "<front-queue> Front-queue called with an empty queue" (print-queue))
               (car front-ptr)))
           
       ; MUTATOR
@@ -38,7 +45,7 @@
                                   (print-queue))))))
                             
       (define (delete-queue!)
-          (cond ((empty-queue?) (error "<delete-queue!> DELETE! called with an empty queue"))
+          (cond ((empty-queue?) (error "<delete-queue!> DELETE! called with an empty queue" (print-queue)))
                 (else (begin
                           (set-front-ptr! (cdr front-ptr))
                           (print-queue)))))
