@@ -1,5 +1,5 @@
 #lang sicp
-(#%require "tools.rkt")
+(#%require "Logics.rkt")
 
 ; Exercise 3.28
 ; Define an or-gate as a primitive function box.
