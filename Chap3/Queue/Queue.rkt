@@ -1,5 +1,15 @@
 #lang sicp
-(#%provide make-queue)
+(#%provide make-queue rear-ptr front-ptr empty-queue? front-queue
+           set-front-ptr! set-rear-ptr! insert-queue! delete-queue!)
+
+(define (rear-ptr q) (q 'rear-ptr))
+(define (front-ptr q) (q 'front-ptr))
+(define (empty-queue? q) (q 'empty-queue?))
+(define (front-queue q) (q 'front-queue))
+(define (set-front-ptr! q item) ((q 'set-front-ptr!) item))
+(define (set-rear-ptr! q item) ((q 'set-front-ptr!) item))
+(define (insert-queue! q item) ((q 'insert-queue!) item))
+(define (delete-queue! q) (q 'delete-queue!))
 
 ; CONSTRUCTOR
 ; Exercise 3.22
