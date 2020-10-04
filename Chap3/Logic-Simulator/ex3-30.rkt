@@ -28,9 +28,13 @@
               (value (car wires)))
              (set-signal! temp value)
              (cons temp (build-wires (cdr wires))))))
-(define A (build-wires (list 0 0 0 0 0 0 0)))
-(define B (build-wires (list 0 0 1 0 0 0 0)))
+(define A (build-wires (list 0 0 0 1 0 1 0)))
+(define B (build-wires (list 0 0 1 0 0 1 0)))
 (define S (build-wires (list 0 0 0 0 0 0 0)))
 (define C (make-wire))
 (set-signal! C 0)
+
 (ripple-carry-adder A B S C)
+(propagate)
+
+(get-signals S)

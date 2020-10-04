@@ -4,7 +4,7 @@
 
 (define (rear-ptr q) (q 'rear-ptr))
 (define (front-ptr q) (q 'front-ptr))
-(define (empty-queue? q) (q 'empty-queue?))
+(define (empty-queue? q) ((q 'empty-queue?)))
 (define (front-queue q) (q 'front-queue))
 (define (set-front-ptr! q item) ((q 'set-front-ptr!) item))
 (define (set-rear-ptr! q item) ((q 'set-front-ptr!) item))
@@ -27,11 +27,14 @@
                   (newline)
                   (begin (display (car ptr)) (display " ")
                          (print (cdr ptr)))))
-          (display "Queue : ") 
-          (print front-ptr))
+         ;(display "QUEUE : ") (print front-ptr))
+         (display ""))
       
       ; SELECTOR
-      (define (empty-queue?) (equal? front-ptr (cons '() '())))
+      (define (empty-queue?) 
+          (or (equal? front-ptr '())
+              (equal? front-ptr (cons '() '()))
+              (equal? front-ptr '(()))))
                                   
       (define (front-queue)
           (if (empty-queue?)
@@ -56,9 +59,11 @@
                             
       (define (delete-queue!)
           (cond ((empty-queue?) (error "<delete-queue!> DELETE! called with an empty queue" (print-queue)))
-                (else (begin
+                (else 
+                      (let ((item (car front-ptr)))
                           (set-front-ptr! (cdr front-ptr))
-                          (print-queue)))))
+                          item))))
+                          
       
 
       

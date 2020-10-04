@@ -3,17 +3,17 @@
 (#%provide get-signals get-signal set-signal! add-action!
            or-gate and-gate inverter make-wire
            half-adder full-adder
-           make-agenda make-time-segment segments segment-time segment-queue empty-agenda? 
+           make-agenda make-time-segment segments segment-time segment-queue empty-agenda? propagate
            current-time first-segment rest-segment set-current-time! set-segments! add-to-agenda! 
-           remove-first-agenda-item! first-agenda-item)
+           remove-first-agenda-item! first-agenda-item probe)
       
 (define (get-signal wire)
     (wire 'get-current!))
 
 (define (get-signals S)
     (if (null? S)
-        (display "")
-        (begin (get-signal (car S))
+        (display "\n")
+        (begin (display (get-signal (car S))) (display " ")
                (get-signals (cdr S)))))
            
 (define (set-signal! wire value)
@@ -23,26 +23,29 @@
     ((wire 'add-action!) action))
 
 (define (after-delay delay action)
+    ;(display "[after-delay] action : ") (display action) (newline)
     (add-to-agenda! (+ delay (current-time the-agenda))
                     action
                     the-agenda))
 
 (define (propagate)
+    ;(display "agenda ==> " ) (display the-agenda) (newline)
     (if (empty-agenda? the-agenda)
-        "[propagate] propagate ==> done"
+        (display "[propagate] propagate ==> done\n")
         (let ((first-item (first-agenda-item the-agenda)))
-             (first-item)
+             ;(display "[DBG]")(display first-item) (newline)
+             ((first-item))
              (remove-first-agenda-item! the-agenda)
              (propagate))))
 
 (define (probe name wire)
     (add-action! wire
                  (lambda () 
-                     (newline)
                      (display name) (display " ")
                      (display (current-time the-agenda))
                      (display "  new-value = " )
-                     (display (get-signal wire)))))
+                     (display (get-signal wire))
+                     (newline))))
 
 (define (make-agenda) (list 0)) ; { time : action-lists }
 
@@ -103,34 +106,37 @@
          
 (define (first-agenda-item agenda)
     (if (empty-agenda? agenda)
-        (error "Agenda is empty : FIRST-AGENDA-ITME")
+        (error "Agenda is empty : FIRST-AGENDA-ITEM")
         (let ((first-seg (first-segment agenda)))
              (set-current-time! agenda (segment-time first-seg))
              (front-queue (segment-queue first-seg)))))
                  
 
 (define (make-wire)
-    (let ((status -1)
+    (let ((status 0)
           (action-procedure '()))
 
-      (define (call-each procedures) 
+      (define (call-each procedures)
+          ;(display "[call-each] proceduers : ")(display procedures) (newline)
           (if (null? procedures)
-              "[make-wire] call-each ==> done"
+              (display "[make-wire] call-each ==> done\n")
               (begin ((car procedures))
                       (call-each (cdr procedures)))))
                 
       (define (set-current! current)
+          ;(display "[set-current!]current : ") (display current) (newline)
           (if (not (= current status))
             (begin (set! status current)
                    (call-each action-procedure)))
             "[make-wire] set-current! ==> done")
-     
+        
       (define (add-action! proc)
-          (set! action-procedure (cons proc action-procedure)))
+          (set! action-procedure (cons proc action-procedure))
+          (proc))
       
       (define (print-status) 
           (display "current ==> ") (display status) (newline)
-          (display "action-procedure ==> ") (display action-procedure) (newline))
+          (display "action-procedure ==> ") (display action-procedure) (display "\n"))
       
       (define (dispatch m)
           (cond ((equal? m 'status) (print-status))
@@ -148,7 +154,6 @@
         
     (define (or-action-procedure)
         (let ((computed (logical-or (get-signal a1) (get-signal a2))))
-             ;(display output) (newline) (display computed) (newline)
              (after-delay
                  or-gate-delay
                  (lambda () (set-signal! output computed)))))
@@ -182,7 +187,7 @@
                 inverter-delay
                 (lambda () (set-signal! output new-value)))))
     (add-action! input invert-input) 
-    "[inverter] inverter ==> ok)")
+    "[inverter] inverter ==> ok")
 
 (define (half-adder a b s c)
     (let ((d (make-wire)) (e (make-wire)))
