@@ -113,7 +113,8 @@
         (process-new-value))
     
     (define (me request)
-        (cond ((eq? request 'I-have-a-value) (process-new-value)) ((eq? request 'I-lost-my-value) (process-forget-value))
+        (cond ((eq? request 'I-have-a-value) (process-new-value)) 
+              ((eq? request 'I-lost-my-value) (process-forget-value))
               (else (error "Unknown request: MULTIPLIER" request))))
     (connect m1 me)
     (connect m2 me)
